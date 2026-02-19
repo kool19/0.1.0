@@ -74,7 +74,7 @@ modalOverlay.onclick = e => {
   if (e.target === modalOverlay) modalOverlay.style.display = "none";
 };
 
-/*  VALIDATION + UX HELPERS  */
+/*  VALIDATION  */
 
 function showFieldError(el, message) {
   if (!el) return;
@@ -150,7 +150,7 @@ createForm.addEventListener("submit", e => {
   userInput.focus();
 });
 
-/*  DELETE (no renumbering)  */
+/*  DELETE  */
 
 function deleteItem(id) {
   if (!confirm("Видалити запис?")) return;
@@ -159,7 +159,7 @@ function deleteItem(id) {
   render();
 }
 
-/*  EDIT FRAME (окремий фрейм)  */
+/*  EDIT FRAME  */
 
 function ensureEditFrameElements() {
   let overlay = document.getElementById("editFrameOverlay");
@@ -423,7 +423,7 @@ function getProcessedItems() {
   return result;
 }
 
-/*  RENDER (uses index+1 for visible numbering)  */
+/*  RENDER  */
 
 function render() {
   tbody.innerHTML = "";
@@ -449,7 +449,7 @@ function render() {
   });
 }
 
-/*  DELEGATED EVENTS FOR TBODY (efficient)  */
+/*  DELEGATED EVENTS FOR TBODY  */
 
 tbody.addEventListener("click", e => {
   const btn = e.target.closest("button");
@@ -480,5 +480,6 @@ const filterSelect = document.getElementById("filterSelect");
 if (filterSelect) filterSelect.onchange = render;
 
 /*  START  */
+
 
 render();
