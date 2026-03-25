@@ -45,6 +45,7 @@ const createForm = document.getElementById("create-section");
 const tbody = document.getElementById("itemsTableBody");
 const searchInput = document.getElementById("searchInput");
 const sortSelect = document.getElementById("sortSelect");
+let sortDirection = 1;
 
 const modalOverlay = document.getElementById("modalOverlay");
 const modalText = document.getElementById("modalText");
@@ -60,6 +61,35 @@ const field2Error = document.getElementById("field2Error");
 const field3Error = document.getElementById("field3Error");
 const field4Error = document.getElementById("field4Error");
 
+/* BUTTON BLOCK */
+
+const COOLDOWN_SECONDS = 3; 
+const submitBtn = createForm ? createForm.querySelector('button[type="submit"]') : null;
+ 
+function startSubmitCooldown() {
+  if (!submitBtn) return; 
+ 
+  const originalText = submitBtn.textContent; 
+  let secondsLeft = COOLDOWN_SECONDS;
+ 
+  submitBtn.disabled = true;
+  submitBtn.classList.add("btn-cooldown");
+  submitBtn.textContent = `Зачекайте... ${secondsLeft}с`;
+ 
+  const interval = setInterval(() => {
+    secondsLeft--;
+ 
+    if (secondsLeft > 0) {
+      submitBtn.textContent = `Зачекайте... ${secondsLeft}с`;
+    } else {
+      clearInterval(interval);
+      submitBtn.disabled = false;
+      submitBtn.classList.remove("btn-cooldown");
+      submitBtn.textContent = originalText;
+    }
+  }, 1000);
+}
+
 /*  MODAL VIEW  */
 
 function showModal(text) {
@@ -74,7 +104,7 @@ modalOverlay.onclick = e => {
   if (e.target === modalOverlay) modalOverlay.style.display = "none";
 };
 
-/*  VALIDATION  */
+/*  VALIDATION + UX HELPERS  */
 
 function showFieldError(el, message) {
   if (!el) return;
@@ -150,7 +180,7 @@ createForm.addEventListener("submit", e => {
   userInput.focus();
 });
 
-/*  DELETE  */
+/*  DELETE (no renumbering)  */
 
 function deleteItem(id) {
   if (!confirm("Видалити запис?")) return;
@@ -159,8 +189,7 @@ function deleteItem(id) {
   render();
 }
 
-/*  EDIT FRAME  */
-
+/* EDIT FRAME */
 function ensureEditFrameElements() {
   let overlay = document.getElementById("editFrameOverlay");
   if (overlay) {
@@ -169,84 +198,35 @@ function ensureEditFrameElements() {
 
   overlay = document.createElement("div");
   overlay.id = "editFrameOverlay";
-  overlay.style.display = "none";
-  overlay.style.position = "fixed";
-  overlay.style.inset = "0";
-  overlay.style.background = "rgba(0,0,0,0.45)";
-  overlay.style.justifyContent = "center";
-  overlay.style.alignItems = "center";
-  overlay.style.zIndex = "1100";
-  overlay.style.overflow = "auto";
 
   const frame = document.createElement("div");
   frame.id = "editFrame";
-  frame.style.background = "#fff";
-  frame.style.width = "1000px";
-  frame.style.maxWidth = "98%";
-  frame.style.maxHeight = "92vh";
-  frame.style.borderRadius = "8px";
-  frame.style.boxShadow = "0 10px 40px rgba(0,0,0,0.35)";
-  frame.style.display = "flex";
-  frame.style.flexDirection = "column";
-  frame.style.overflow = "hidden";
 
   const header = document.createElement("div");
   header.id = "editFrameHeader";
-  header.style.padding = "12px 16px";
-  header.style.background = "#0077cc";
-  header.style.color = "#fff";
-  header.style.display = "flex";
-  header.style.alignItems = "center";
-  header.style.justifyContent = "space-between";
   header.innerHTML = `<strong>Редагувати запис</strong>`;
 
   const closeBtn = document.createElement("button");
   closeBtn.id = "closeEditFrame";
   closeBtn.className = "frame-btn cancel";
   closeBtn.textContent = "✕";
-  closeBtn.style.background = "#6c757d";
-  closeBtn.style.color = "#fff";
-  closeBtn.style.border = "none";
-  closeBtn.style.borderRadius = "6px";
-  closeBtn.style.padding = "6px 10px";
-  closeBtn.style.cursor = "pointer";
   header.appendChild(closeBtn);
 
   const body = document.createElement("div");
   body.id = "editFrameBody";
-  body.style.padding = "18px";
-  body.style.overflow = "auto";
-  body.style.flex = "1 1 auto";
 
   const footer = document.createElement("div");
   footer.id = "editFrameFooter";
-  footer.style.padding = "12px 16px";
-  footer.style.display = "flex";
-  footer.style.justifyContent = "flex-end";
-  footer.style.gap = "8px";
-  footer.style.borderTop = "1px solid #eee";
 
   const saveBtn = document.createElement("button");
   saveBtn.id = "saveEditFrame";
   saveBtn.className = "frame-btn save";
   saveBtn.textContent = "Зберегти";
-  saveBtn.style.background = "#28a745";
-  saveBtn.style.color = "#fff";
-  saveBtn.style.border = "none";
-  saveBtn.style.borderRadius = "6px";
-  saveBtn.style.padding = "8px 14px";
-  saveBtn.style.cursor = "pointer";
 
   const cancelBtn = document.createElement("button");
   cancelBtn.id = "cancelEditFrame";
   cancelBtn.className = "frame-btn cancel";
   cancelBtn.textContent = "Скасувати";
-  cancelBtn.style.background = "#6c757d";
-  cancelBtn.style.color = "#fff";
-  cancelBtn.style.border = "none";
-  cancelBtn.style.borderRadius = "6px";
-  cancelBtn.style.padding = "8px 14px";
-  cancelBtn.style.cursor = "pointer";
 
   footer.appendChild(saveBtn);
   footer.appendChild(cancelBtn);
@@ -402,28 +382,36 @@ function getProcessedItems() {
   const search = (searchInput.value || "").toLowerCase();
   if (search) result = result.filter(i => (i.user || "").toLowerCase().includes(search));
 
-  const filterSelect = document.getElementById("filterSelect"); // may be added in HTML
+  const sortDirBtn = document.getElementById("sortDirBtn");
+
+  sortDirBtn.onclick = () => {
+  sortDirection *= -1;
+  sortDirBtn.textContent = sortDirection === 1 ? "⬆" : "⬇";
+  render();
+};
+
+  const filterSelect = document.getElementById("filterSelect"); 
   if (filterSelect && filterSelect.value && filterSelect.value !== "all") {
     const val = filterSelect.value;
     result = result.filter(i => i.status === val || i.severity === val);
   }
 
   switch (sortSelect.value) {
-    case "user":
-      result.sort((a, b) => a.user.localeCompare(b.user));
-      break;
-    case "severity":
-      result.sort((a, b) => a.severity.localeCompare(b.severity));
-      break;
-    case "status":
-      result.sort((a, b) => a.status.localeCompare(b.status));
-      break;
-  }
+  case "user":
+    result.sort((a, b) => sortDirection * a.user.localeCompare(b.user));
+    break;
+  case "severity":
+    result.sort((a, b) => sortDirection * a.severity.localeCompare(b.severity));
+    break;
+  case "status":
+    result.sort((a, b) => sortDirection * a.status.localeCompare(b.status));
+    break;
+}
 
   return result;
 }
 
-/*  RENDER  */
+/*  RENDER (uses index+1 for visible numbering)  */
 
 function render() {
   tbody.innerHTML = "";
@@ -480,6 +468,5 @@ const filterSelect = document.getElementById("filterSelect");
 if (filterSelect) filterSelect.onchange = render;
 
 /*  START  */
-
 
 render();
